@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>NEON RUN: SIGNAL BREAK</title>
+<style>
+body { margin:0; overflow:hidden; background:#050510; font-family:Arial; }
+canvas { display:block; }
+#ui {
+  position:absolute; top:10px; left:10px;
+  color:#00ffff; z-index:10;
+}
+#menu {
+  position:absolute;
+  width:100%; height:100%;
+  display:flex; justify-content:center; align-items:center;
+  flex-direction:column;
+  color:white;
+  background:#050510;
+}
+button {
+  padding:12px 24px;
+  font-size:18px;
+  background:#00ffff;
+  border:none;
+  cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div id="menu">
+  <h1>NEON RUN</h1>
+  <p>Survive the signal collapse</p>
+  <button onclick="startGame()">START</button>
+</div>
+
+<div id="ui">
+  <div id="score">Score: 0</div>
+</div>
+
+<canvas id="c"></canvas>
+
+<script>
+const c = document.getElementById("c");
+const ctx = c.getContext("2d");
+c.width = innerWidth;
+c.height = innerHeight;
+
+let keys = {};
+let nodes = [];
+let score = 0;
+let running = false;
+
+const player = {
+  x:c.width/2,
+  y:c.height/2,
+  size:10,
+  speed:4
+};
+
+document.addEventListener("keydown", e=>keys[e.key.toLowerCase()]=true);
+document.addEventListener("keyup", e=>keys[e.key.toLowerCase()]=false);
+
+// SIGNAL NODES (enemies)
+function spawnNode(){
+  nodes.push({
+    x:Math.random()*c.width,
+    y:Math.random()*c.height,
+    speed:1 + Math.random()*1.5
+  });
+}
+setInterval(()=>{ if(running) spawnNode(); },800);
+
+// MOVE
+function update(){
+  if(keys["w"]) player.y-=player.speed;
+  if(keys["s"]) player.y+=player.speed;
+  if(keys["a"]) player.x-=player.speed;
+  if(keys["d"]) player.x+=player.speed;
+
+  player.x=Math.max(0,Math.min(c.width,player.x));
+  player.y=Math.max(0,Math.min(c.height,player.y));
+
+  nodes.forEach((n,i)=>{
+    let ang=Math.atan2(player.y-n.y, player.x-n.x);
+    n.x+=Math.cos(ang)*n.speed;
+    n.y+=Math.sin(ang)*n.speed;
+
+    let d=Math.hypot(player.x-n.x, player.y-n.y);
+    if(d<12){
+      running=false;
+      document.getElementById("menu").style.display="flex";
+      document.querySelector("#menu h1").innerText="SYSTEM FAILURE";
+    }
+
+    if(d<120){
+      score++;
+      document.getElementById("score").innerText="Score: "+score;
+    }
+  });
+}
+
+// DRAW
+function draw(){
+  ctx.fillStyle="#050510";
+  ctx.fillRect(0,0,c.width,c.height);
+
+  // flicker effect
+  if(Math.random()<0.02){
+    ctx.fillStyle="rgba(0,255,255,0.05)";
+    ctx.fillRect(0,0,c.width,c.height);
+  }
+
+  // player
+  ctx.fillStyle="#00ffff";
+  ctx.beginPath();
+  ctx.arc(player.x,player.y,10,0,Math.PI*2);
+  ctx.fill();
+
+  // nodes
+  nodes.forEach(n=>{
+    ctx.fillStyle="magenta";
+    ctx.fillRect(n.x,n.y,8,8);
+  });
+}
+
+function loop(){
+  if(running){
+    update();
+    draw();
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+
+function startGame(){
+  nodes=[];
+  score=0;
+  player.x=c.width/2;
+  player.y=c.height/2;
+  running=true;
+  document.getElementById("menu").style.display="none";
+  document.querySelector("#menu h1").innerText="NEON RUN";
+}
+</script>
+
+</body>
+</html>
